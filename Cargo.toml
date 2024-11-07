@@ -1,0 +1,27 @@
+[package]
+name = "ockam_ebpf_prebuilt"
+version = "0.1.0"
+authors = ["Ockam Developers"]
+categories = ["network-programming"]
+edition = "2021"
+homepage = "https://github.com/build-trust/ockam"
+keywords = ["ockam", "crypto", "p2p", "cryptography", "encryption"]
+license = "Apache-2.0"
+publish = true
+readme = "README.md"
+repository = "https://github.com/build-trust/ockam-ebpf"
+rust-version = "1.56.0"
+description = """
+eBPF program used by Ockam Privileged Portals
+"""
+include = ["../ockam_ebpf"]
+
+[features]
+default = []
+prebuilt = ["reqwest", "url"]
+
+[build-dependencies]
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls-native-roots", "blocking"], optional = true }
+url = { version = "2.5.2", optional = true }
+
+[lib]
