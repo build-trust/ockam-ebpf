@@ -2,29 +2,14 @@
 //!
 //! ## Build
 //!
-//! ```bash
-//! cargo build-ebpf
-//! ```
-//!
-//! Building eBPFs have roughly following requirements:
-//!  - Linux
-//!  - Rust nightly
-//!  - Some dependencies to be installed
-//!
-//! Because of that crate with the eBPF code is kept out of the workspace.
-//! Example of a virtual machine to build it can be found in `ubuntu_x86.yaml`.
+//! Building the eBPF have prerequisites described here https://aya-rs.dev/book/start/development/
 //!
 //! Using ockam with eBPFs requires:
 //!  - Linux
 //!  - root (CAP_BPF, CAP_NET_RAW, CAP_NET_ADMIN, CAP_SYS_ADMIN)
 //!
-//! Example of a virtual machine to run ockam with eBPF can be found in `ubuntu_arm.yaml`.
-//!
-//! eBPF is a small architecture-independent object file that is small enough,
-//! to include it in the repo.
-//!
-//! The built eBPF object should be copied to `/implementations/rust/ockam/ockam_ebpf/ockam_ebpf`,
-//! from where it will be grabbed by `ockam_transport_tcp` crate.
+//! Example of a virtual machine capable of both building eBPF and running Ockam Privileged Portals
+//! can be found in `vm/ubuntu_arm.yaml`.
 
 #![no_std]
 #![no_main]

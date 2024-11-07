@@ -12,7 +12,7 @@ readme = "README.md"
 repository = "https://github.com/build-trust/ockam-ebpf"
 rust-version = "1.56.0"
 description = """
-eBPF program used by Ockam TCP Portals
+eBPF program used by Ockam Privileged Portals
 """
 
 [dependencies]
