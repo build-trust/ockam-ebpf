@@ -1,5 +1,13 @@
 [toolchain]
-channel = "1.81"
-components = ["clippy", "rustfmt"]
-profile = "minimal"
-targets = ["thumbv7em-none-eabihf"]
+channel = "nightly"
+# The source code of rustc, provided by the rust-src component, is needed for
+# building eBPF programs.
+components = [
+    "cargo",
+    "clippy",
+    "rust-docs",
+    "rust-src",
+    "rust-std",
+    "rustc",
+    "rustfmt",
+]
