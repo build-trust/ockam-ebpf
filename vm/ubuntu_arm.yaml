@@ -38,6 +38,8 @@ provision:
       apt-get install --yes protobuf-compiler
       apt-get install --yes libssl-dev
       apt-get install --yes net-tools
+      apt-get install --yes iperf3
+      apt-get install --yes cmake
 
       apt-get install --yes bpfcc-tools bpftrace
       apt-get install --yes linux-tools-common linux-tools-generic
