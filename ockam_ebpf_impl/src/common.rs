@@ -6,8 +6,9 @@ use network_types::ip::{IpProto, Ipv4Hdr};
 use network_types::tcp::TcpHdr;
 
 use aya_ebpf::bindings::TC_ACT_PIPE;
+use aya_ebpf::helpers::bpf_ktime_get_boot_ns;
 use aya_ebpf::macros::map;
-use aya_ebpf::maps::HashMap;
+use aya_ebpf::maps::Queue;
 use aya_ebpf::programs::TcContext;
 
 use crate::conversion::{convert_ockam_to_tcp, convert_tcp_to_ockam};
@@ -17,17 +18,25 @@ pub type Proto = u8;
 
 pub type Port = u16;
 
-// TODO: May want to switch to `HashMap::pinned` for efficiency (to share eBPFs)
-// TODO: Split Inlet port map into inlet ingress and inlet egress maps for performance
-//  (and the same for outlets)
+#[repr(C)]
+#[derive(Default, Clone, Copy)]
+struct PortQueueElement {
+    port: Port,
+    proto: Proto,
+}
 
-/// Ports that we run inlets on
-#[map]
-static INLET_PORT_MAP: HashMap<Port, Proto> = HashMap::with_max_entries(1024, 0);
+impl PortQueueElement {
+    const fn new() -> Self {
+        PortQueueElement { port: 0, proto: 0 }
+    }
+}
 
-/// Ports that we assigned for currently running connections
+/// Ports that we run on
 #[map]
-static OUTLET_PORT_MAP: HashMap<Port, Proto> = HashMap::with_max_entries(1024, 0);
+static PORT_QUEUE: Queue<PortQueueElement> = Queue::with_max_entries(1024, 0);
+
+static mut PORTS_LEN: usize = 0;
+static mut PORTS: [PortQueueElement; 1024] = [PortQueueElement::new(); 1024];
 
 #[derive(PartialEq)]
 pub enum Direction {
@@ -61,6 +70,8 @@ pub fn try_handle(ctx: &TcContext, direction: Direction) -> Result<i32, i32> {
     };
     let ipv4hdr_stack = unsafe { *ipv4hdr };
 
+    unsafe { update_cache_if_needed() };
+
     if direction == Direction::Ingress && ipv4hdr_stack.proto == IpProto::Tcp {
         return handle_ingress_tcp_protocol(ctx, ipv4hdr);
     }
@@ -70,6 +81,27 @@ pub fn try_handle(ctx: &TcContext, direction: Direction) -> Result<i32, i32> {
     }
 
     Ok(TC_ACT_PIPE)
+}
+
+#[inline(always)]
+unsafe fn update_cache_if_needed() {
+    static mut LAST_UPDATED_NS: u64 = 0;
+    static UPDATE_INTERVAL_NS: u64 = 5 * 1000 * 1000 * 1000; // 5 seconds
+
+    let time = bpf_ktime_get_boot_ns();
+
+    if time - LAST_UPDATED_NS > UPDATE_INTERVAL_NS || LAST_UPDATED_NS == 0 {
+        update_cache();
+        LAST_UPDATED_NS = bpf_ktime_get_boot_ns();
+    }
+}
+
+#[inline(always)]
+unsafe fn update_cache() {
+    while let Some(queue_element) = PORT_QUEUE.pop() {
+        PORTS[PORTS_LEN] = queue_element;
+        PORTS_LEN += 1;
+    }
 }
 
 #[inline(always)]
@@ -120,61 +152,35 @@ fn handle_ingress_tcp_protocol(ctx: &TcContext, ipv4hdr: *mut Ipv4Hdr) -> Result
     let fin = tcphdr_stack.fin();
     let rst = tcphdr_stack.rst();
 
-    if let Some(proto) = unsafe { INLET_PORT_MAP.get(&dst_port) } {
-        // Inlet logic
-        let proto = *proto;
-        trace!(
-            ctx,
-            "INLET. CONVERTING TCP PACKET TO {}. SRC: {}.{}.{}.{}:{}, DST: {}.{}.{}.{}:{}. SYN {} ACK {} FIN {} RST {}.",
-            proto,
-            src_ip.octets()[0],
-            src_ip.octets()[1],
-            src_ip.octets()[2],
-            src_ip.octets()[3],
-            src_port,
-            dst_ip.octets()[0],
-            dst_ip.octets()[1],
-            dst_ip.octets()[2],
-            dst_ip.octets()[3],
-            dst_port,
-            syn,
-            ack,
-            fin,
-            rst
-        );
+    unsafe {
+        for i in 0..PORTS_LEN {
+            if PORTS[i].port == dst_port {
+                let proto = PORTS[i].proto;
+                trace!(
+                    ctx,
+                    "CONVERTING TCP PACKET TO {}. SRC: {}.{}.{}.{}:{}, DST: {}.{}.{}.{}:{}. SYN {} ACK {} FIN {} RST {}.",
+                    proto,
+                    src_ip.octets()[0],
+                    src_ip.octets()[1],
+                    src_ip.octets()[2],
+                    src_ip.octets()[3],
+                    src_port,
+                    dst_ip.octets()[0],
+                    dst_ip.octets()[1],
+                    dst_ip.octets()[2],
+                    dst_ip.octets()[3],
+                    dst_port,
+                    syn,
+                    ack,
+                    fin,
+                    rst
+                );
 
-        convert_tcp_to_ockam(ctx, ipv4hdr, proto);
+                convert_tcp_to_ockam(ctx, ipv4hdr, proto);
 
-        return Ok(TC_ACT_PIPE);
-    }
-
-    if let Some(proto) = unsafe { OUTLET_PORT_MAP.get(&dst_port) } {
-        // Outlet logic
-        let proto = *proto;
-
-        trace!(
-            ctx,
-            "OUTLET. CONVERTING TCP PACKET TO {}. SRC: {}.{}.{}.{}:{}, DST: {}.{}.{}.{}:{}. SYN {} ACK {} FIN {} RST {}.",
-            proto,
-            src_ip.octets()[0],
-            src_ip.octets()[1],
-            src_ip.octets()[2],
-            src_ip.octets()[3],
-            src_port,
-            dst_ip.octets()[0],
-            dst_ip.octets()[1],
-            dst_ip.octets()[2],
-            dst_ip.octets()[3],
-            dst_port,
-            syn,
-            ack,
-            fin,
-            rst
-        );
-
-        convert_tcp_to_ockam(ctx, ipv4hdr, proto);
-
-        return Ok(TC_ACT_PIPE);
+                return Ok(TC_ACT_PIPE);
+            }
+        }
     }
 
     trace!(
@@ -251,61 +257,35 @@ fn handle_egress_ockam_protocol(ctx: &TcContext, ipv4hdr: *mut Ipv4Hdr) -> Resul
     let fin = tcphdr_stack.fin();
     let rst = tcphdr_stack.rst();
 
-    if let Some(port_proto) = unsafe { INLET_PORT_MAP.get(&src_port) } {
-        // Inlet logic
-        if proto == *port_proto {
-            trace!(
-                ctx,
-                "INLET. CONVERTING OCKAM {} packet to TCP. SRC: {}.{}.{}.{}:{}, DST: {}.{}.{}.{}:{}. SYN {} ACK {} FIN {} RST {}.",
-                proto,
-                src_ip.octets()[0],
-                src_ip.octets()[1],
-                src_ip.octets()[2],
-                src_ip.octets()[3],
-                src_port,
-                dst_ip.octets()[0],
-                dst_ip.octets()[1],
-                dst_ip.octets()[2],
-                dst_ip.octets()[3],
-                dst_port,
-                syn,
-                ack,
-                fin,
-                rst
-            );
+    unsafe {
+        for i in 0..PORTS_LEN {
+            if PORTS[i].port == src_port {
+                if proto == PORTS[i].proto {
+                    trace!(
+                    ctx,
+                    "CONVERTING OCKAM {} packet to TCP. SRC: {}.{}.{}.{}:{}, DST: {}.{}.{}.{}:{}. SYN {} ACK {} FIN {} RST {}.",
+                    proto,
+                    src_ip.octets()[0],
+                    src_ip.octets()[1],
+                    src_ip.octets()[2],
+                    src_ip.octets()[3],
+                    src_port,
+                    dst_ip.octets()[0],
+                    dst_ip.octets()[1],
+                    dst_ip.octets()[2],
+                    dst_ip.octets()[3],
+                    dst_port,
+                    syn,
+                    ack,
+                    fin,
+                    rst
+                );
 
-            convert_ockam_to_tcp(ctx, ipv4hdr, tcphdr);
+                    convert_ockam_to_tcp(ctx, ipv4hdr, tcphdr);
 
-            return Ok(TC_ACT_PIPE);
-        }
-    }
-
-    if let Some(port_proto) = unsafe { OUTLET_PORT_MAP.get(&src_port) } {
-        // Outlet logic
-        if proto == *port_proto {
-            trace!(
-                ctx,
-                "OUTLET. CONVERTING OCKAM {} packet to TCP. SRC: {}.{}.{}.{}:{}, DST: {}.{}.{}.{}:{}. SYN {} ACK {} FIN {} RST {}.",
-                proto,
-                src_ip.octets()[0],
-                src_ip.octets()[1],
-                src_ip.octets()[2],
-                src_ip.octets()[3],
-                src_port,
-                dst_ip.octets()[0],
-                dst_ip.octets()[1],
-                dst_ip.octets()[2],
-                dst_ip.octets()[3],
-                dst_port,
-                syn,
-                ack,
-                fin,
-                rst
-            );
-
-            convert_ockam_to_tcp(ctx, ipv4hdr, tcphdr);
-
-            return Ok(TC_ACT_PIPE);
+                    return Ok(TC_ACT_PIPE);
+                }
+            }
         }
     }
 
