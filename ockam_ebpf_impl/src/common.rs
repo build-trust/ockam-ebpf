@@ -153,7 +153,7 @@ fn handle_ingress_tcp_protocol(ctx: &TcContext, ipv4hdr: *mut Ipv4Hdr) -> Result
     let fin = tcphdr_stack.fin();
     let rst = tcphdr_stack.rst();
 
-    unsafe {
+    /*unsafe {
         #[allow(static_mut_refs)]
         for i in 0..PORTS.len() {
             let port = match PORTS.get(i) {
@@ -188,7 +188,7 @@ fn handle_ingress_tcp_protocol(ctx: &TcContext, ipv4hdr: *mut Ipv4Hdr) -> Result
                 return Ok(TC_ACT_PIPE);
             }
         }
-    }
+    }*/
 
     trace!(
         ctx,
@@ -264,42 +264,42 @@ fn handle_egress_ockam_protocol(ctx: &TcContext, ipv4hdr: *mut Ipv4Hdr) -> Resul
     let fin = tcphdr_stack.fin();
     let rst = tcphdr_stack.rst();
 
-    unsafe {
-        #[allow(static_mut_refs)]
-        for i in 0..PORTS.len() {
-            let port = match PORTS.get(i) {
-                Some(port) => *port,
-                None => return Ok(0),
-            };
-            if port.port == src_port {
-                if proto == port.proto {
-                    trace!(
-                        ctx,
-                        "CONVERTING OCKAM {} packet to TCP. SRC: {}.{}.{}.{}:{}, DST: {}.{}.{}.{}:{}. SYN {} ACK {} FIN {} RST {}.",
-                        proto,
-                        src_ip.octets()[0],
-                        src_ip.octets()[1],
-                        src_ip.octets()[2],
-                        src_ip.octets()[3],
-                        src_port,
-                        dst_ip.octets()[0],
-                        dst_ip.octets()[1],
-                        dst_ip.octets()[2],
-                        dst_ip.octets()[3],
-                        dst_port,
-                        syn,
-                        ack,
-                        fin,
-                        rst
-                    );
-
-                    convert_ockam_to_tcp(ctx, ipv4hdr, tcphdr);
-
-                    return Ok(TC_ACT_PIPE);
-                }
-            }
-        }
-    }
+    // unsafe {
+    //     #[allow(static_mut_refs)]
+    //     for i in 0..PORTS.len() {
+    //         let port = match PORTS.get(i) {
+    //             Some(port) => *port,
+    //             None => return Ok(0),
+    //         };
+    //         if port.port == src_port {
+    //             if proto == port.proto {
+    //                 trace!(
+    //                     ctx,
+    //                     "CONVERTING OCKAM {} packet to TCP. SRC: {}.{}.{}.{}:{}, DST: {}.{}.{}.{}:{}. SYN {} ACK {} FIN {} RST {}.",
+    //                     proto,
+    //                     src_ip.octets()[0],
+    //                     src_ip.octets()[1],
+    //                     src_ip.octets()[2],
+    //                     src_ip.octets()[3],
+    //                     src_port,
+    //                     dst_ip.octets()[0],
+    //                     dst_ip.octets()[1],
+    //                     dst_ip.octets()[2],
+    //                     dst_ip.octets()[3],
+    //                     dst_port,
+    //                     syn,
+    //                     ack,
+    //                     fin,
+    //                     rst
+    //                 );
+    //
+    //                 convert_ockam_to_tcp(ctx, ipv4hdr, tcphdr);
+    //
+    //                 return Ok(TC_ACT_PIPE);
+    //             }
+    //         }
+    //     }
+    // }
 
     trace!(
         ctx,
