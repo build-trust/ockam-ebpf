@@ -154,12 +154,15 @@ fn handle_ingress_tcp_protocol(ctx: &TcContext, ipv4hdr: *mut Ipv4Hdr) -> Result
     let rst = tcphdr_stack.rst();
 
     unsafe {
-        for i in 0..PORTS_LEN {
-            if i >= PORTS_MAX_LEN {
-                continue;
-            }
-            if PORTS[i].port == dst_port {
-                let proto = PORTS[i].proto;
+        #[allow(static_mut_refs)]
+        for i in 0..PORTS.len() {
+            let port = match PORTS.get(i) {
+                Some(port) => *port,
+                None => return Ok(TC_ACT_PIPE),
+            };
+
+            if port.port == dst_port {
+                let proto = port.proto;
                 trace!(
                     ctx,
                     "CONVERTING TCP PACKET TO {}. SRC: {}.{}.{}.{}:{}, DST: {}.{}.{}.{}:{}. SYN {} ACK {} FIN {} RST {}.",
@@ -262,12 +265,14 @@ fn handle_egress_ockam_protocol(ctx: &TcContext, ipv4hdr: *mut Ipv4Hdr) -> Resul
     let rst = tcphdr_stack.rst();
 
     unsafe {
-        for i in 0..PORTS_LEN {
-            if i >= PORTS_MAX_LEN {
-                continue;
-            }
-            if PORTS[i].port == src_port {
-                if proto == PORTS[i].proto {
+        #[allow(static_mut_refs)]
+        for i in 0..PORTS.len() {
+            let port = match PORTS.get(i) {
+                Some(port) => *port,
+                None => return Ok(0),
+            };
+            if port.port == src_port {
+                if proto == port.proto {
                     trace!(
                         ctx,
                         "CONVERTING OCKAM {} packet to TCP. SRC: {}.{}.{}.{}:{}, DST: {}.{}.{}.{}:{}. SYN {} ACK {} FIN {} RST {}.",
