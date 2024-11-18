@@ -85,24 +85,24 @@ pub fn try_handle(ctx: &TcContext, direction: Direction) -> Result<i32, i32> {
 
 #[inline(always)]
 unsafe fn update_cache_if_needed() {
-    static mut LAST_UPDATED_NS: u64 = 0;
-    static UPDATE_INTERVAL_NS: u64 = 5 * 1000 * 1000 * 1000; // 5 seconds
-
-    let time = bpf_ktime_get_boot_ns();
-
-    if time - LAST_UPDATED_NS > UPDATE_INTERVAL_NS || LAST_UPDATED_NS == 0 {
-        update_cache();
-        LAST_UPDATED_NS = bpf_ktime_get_boot_ns();
-    }
+    // static mut LAST_UPDATED_NS: u64 = 0;
+    // static UPDATE_INTERVAL_NS: u64 = 5 * 1000 * 1000 * 1000; // 5 seconds
+    //
+    // let time = bpf_ktime_get_boot_ns();
+    //
+    // if time - LAST_UPDATED_NS > UPDATE_INTERVAL_NS || LAST_UPDATED_NS == 0 {
+    //     update_cache();
+    //     LAST_UPDATED_NS = bpf_ktime_get_boot_ns();
+    // }
 }
 
-#[inline(always)]
-unsafe fn update_cache() {
-    while let Some(queue_element) = PORT_QUEUE.pop() {
-        PORTS[PORTS_LEN] = queue_element;
-        PORTS_LEN += 1;
-    }
-}
+// #[inline(always)]
+// unsafe fn update_cache() {
+//     while let Some(queue_element) = PORT_QUEUE.pop() {
+//         PORTS[PORTS_LEN] = queue_element;
+//         PORTS_LEN += 1;
+//     }
+// }
 
 #[inline(always)]
 fn is_ockam_proto(proto: Proto) -> bool {
