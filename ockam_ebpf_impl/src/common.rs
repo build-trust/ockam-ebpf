@@ -36,7 +36,8 @@ impl PortQueueElement {
 static PORT_QUEUE: Queue<PortQueueElement> = Queue::with_max_entries(1024, 0);
 
 static mut PORTS_LEN: usize = 0;
-static mut PORTS: [PortQueueElement; 1024] = [PortQueueElement::new(); 1024];
+static PORTS_MAX_LEN: usize = 1024;
+static mut PORTS: [PortQueueElement; PORTS_MAX_LEN] = [PortQueueElement::new(); PORTS_MAX_LEN];
 
 #[derive(PartialEq)]
 pub enum Direction {
@@ -154,6 +155,9 @@ fn handle_ingress_tcp_protocol(ctx: &TcContext, ipv4hdr: *mut Ipv4Hdr) -> Result
 
     unsafe {
         for i in 0..PORTS_LEN {
+            if i >= PORTS_MAX_LEN {
+                continue;
+            }
             if PORTS[i].port == dst_port {
                 let proto = PORTS[i].proto;
                 trace!(
@@ -259,27 +263,30 @@ fn handle_egress_ockam_protocol(ctx: &TcContext, ipv4hdr: *mut Ipv4Hdr) -> Resul
 
     unsafe {
         for i in 0..PORTS_LEN {
+            if i >= PORTS_MAX_LEN {
+                continue;
+            }
             if PORTS[i].port == src_port {
                 if proto == PORTS[i].proto {
                     trace!(
-                    ctx,
-                    "CONVERTING OCKAM {} packet to TCP. SRC: {}.{}.{}.{}:{}, DST: {}.{}.{}.{}:{}. SYN {} ACK {} FIN {} RST {}.",
-                    proto,
-                    src_ip.octets()[0],
-                    src_ip.octets()[1],
-                    src_ip.octets()[2],
-                    src_ip.octets()[3],
-                    src_port,
-                    dst_ip.octets()[0],
-                    dst_ip.octets()[1],
-                    dst_ip.octets()[2],
-                    dst_ip.octets()[3],
-                    dst_port,
-                    syn,
-                    ack,
-                    fin,
-                    rst
-                );
+                        ctx,
+                        "CONVERTING OCKAM {} packet to TCP. SRC: {}.{}.{}.{}:{}, DST: {}.{}.{}.{}:{}. SYN {} ACK {} FIN {} RST {}.",
+                        proto,
+                        src_ip.octets()[0],
+                        src_ip.octets()[1],
+                        src_ip.octets()[2],
+                        src_ip.octets()[3],
+                        src_port,
+                        dst_ip.octets()[0],
+                        dst_ip.octets()[1],
+                        dst_ip.octets()[2],
+                        dst_ip.octets()[3],
+                        dst_port,
+                        syn,
+                        ack,
+                        fin,
+                        rst
+                    );
 
                     convert_ockam_to_tcp(ctx, ipv4hdr, tcphdr);
 
