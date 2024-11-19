@@ -37,7 +37,7 @@ static PORT_QUEUE: Queue<PortQueueElement> = Queue::with_max_entries(1024, 0);
 
 static mut PORTS_LEN: usize = 0;
 static PORTS_MAX_LEN: usize = 1024;
-static mut PORTS: [PortQueueElement; PORTS_MAX_LEN] = [PortQueueElement::new(); PORTS_MAX_LEN];
+// static mut PORTS: [PortQueueElement; PORTS_MAX_LEN] = [PortQueueElement::new(); PORTS_MAX_LEN];
 
 #[derive(PartialEq)]
 pub enum Direction {
