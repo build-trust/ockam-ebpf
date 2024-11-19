@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 #[cfg(feature = "build")]
 fn build_ebpf() {
-    println!("cargo:rerun-if-changed=./ockam_ebpf_impl");
+    println!("cargo:rerun-if-changed=./ockam_ebpf_impl/src/common.rs");
 
     println!("cargo:warning=WARNING");
 
