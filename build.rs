@@ -9,7 +9,7 @@ fn build_ebpf() {
 
     let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
     let output_file = out_dir.join("ockam_ebpf");
-
+11
     let target_dir = out_dir.join("ebpf");
 
     let output = Command::new("cargo")
