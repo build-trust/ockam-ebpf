@@ -6,6 +6,7 @@ use network_types::ip::{IpProto, Ipv4Hdr};
 use network_types::tcp::TcpHdr;
 
 use aya_ebpf::bindings::TC_ACT_PIPE;
+use aya_ebpf::helpers::bpf_ktime_get_boot_ns;
 use aya_ebpf::macros::map;
 use aya_ebpf::maps::{HashMap, Queue};
 use aya_ebpf::programs::TcContext;
@@ -81,6 +82,8 @@ pub fn try_handle(ctx: &TcContext, direction: Direction) -> Result<i32, i32> {
     };
     let ipv4hdr_stack = unsafe { *ipv4hdr };
 
+    unsafe { update_cache_if_needed() }
+
     if direction == Direction::Ingress && ipv4hdr_stack.proto == IpProto::Tcp {
         return handle_ingress_tcp_protocol(ctx, ipv4hdr);
     }
@@ -90,6 +93,29 @@ pub fn try_handle(ctx: &TcContext, direction: Direction) -> Result<i32, i32> {
     }
 
     Ok(TC_ACT_PIPE)
+}
+
+#[inline(always)]
+unsafe fn update_cache_if_needed() {
+    static mut LAST_UPDATED_NS: u64 = 0;
+    static UPDATE_INTERVAL_NS: u64 = 5 * 1000 * 1000 * 1000; // 5 seconds
+
+    let time = bpf_ktime_get_boot_ns();
+
+    if time - LAST_UPDATED_NS > UPDATE_INTERVAL_NS || LAST_UPDATED_NS == 0 {
+        update_cache();
+        LAST_UPDATED_NS = bpf_ktime_get_boot_ns();
+    }
+}
+
+#[inline(always)]
+unsafe fn update_cache() {
+    while let Some(queue_element) = PORT_QUEUE.pop() {
+        if PORTS_LEN < 1024 {
+            PORTS[PORTS_LEN] = queue_element;
+            PORTS_LEN += 1;
+        }
+    }
 }
 
 #[inline(always)]
