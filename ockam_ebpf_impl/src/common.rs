@@ -31,9 +31,9 @@ pub type Port = u16;
 //     }
 // }
 
-/// Ports that we run on
-#[map]
-static PORT_QUEUE: Queue<u8> = Queue::with_max_entries(1024, 0);
+// /// Ports that we run on
+// #[map]
+// static PORT_QUEUE: Queue<u8> = Queue::with_max_entries(1024, 0);
 
 static mut PORTS_LEN: usize = 0;
 static PORTS_MAX_LEN: usize = 1024;
