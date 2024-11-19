@@ -38,7 +38,7 @@ impl PortQueueElement {
 /// Ports that we run inlets on
 #[map]
 static INLET_PORT_MAP: HashMap<Port, Proto> = HashMap::with_max_entries(1024, 0);
-
+1
 /// Ports that we assigned for currently running connections
 #[map]
 static OUTLET_PORT_MAP: HashMap<Port, Proto> = HashMap::with_max_entries(1024, 0);
