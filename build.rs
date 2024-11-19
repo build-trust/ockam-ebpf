@@ -17,10 +17,16 @@ fn build_ebpf() {
     _ = std::fs::remove_dir_all(&target_dir);
     std::fs::create_dir(&target_dir).unwrap();
 
+    #[allow(unused_mut)]
+    let mut args = vec!["build", "--release"];
+
+    #[cfg(feature = "logging")]
+    args.extend_from_slice(&["-F", "logging"]);
+
     let output = Command::new("cargo")
         .current_dir(PathBuf::from("./ockam_ebpf_impl"))
         .env_remove("RUSTUP_TOOLCHAIN")
-        .args(&["build", "--release"])
+        .args(&args)
         .env("CARGO_TARGET_DIR", &target_dir)
         .output();
 
