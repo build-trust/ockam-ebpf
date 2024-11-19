@@ -18,22 +18,22 @@ pub type Proto = u8;
 
 pub type Port = u16;
 
-#[repr(C)]
-#[derive(Default, Clone, Copy)]
-struct PortQueueElement {
-    port: Port,
-    proto: Proto,
-}
-
-impl PortQueueElement {
-    const fn new() -> Self {
-        PortQueueElement { port: 0, proto: 0 }
-    }
-}
+// #[repr(C)]
+// #[derive(Default, Clone, Copy)]
+// struct PortQueueElement {
+//     port: Port,
+//     proto: Proto,
+// }
+//
+// impl PortQueueElement {
+//     const fn new() -> Self {
+//         PortQueueElement { port: 0, proto: 0 }
+//     }
+// }
 
 /// Ports that we run on
 #[map]
-static PORT_QUEUE: Queue<PortQueueElement> = Queue::with_max_entries(1024, 0);
+static PORT_QUEUE: Queue<u8> = Queue::with_max_entries(1024, 0);
 
 static mut PORTS_LEN: usize = 0;
 static PORTS_MAX_LEN: usize = 1024;
