@@ -38,7 +38,7 @@ fn build_ebpf() {
 
 #[cfg(not(feature = "build"))]
 fn download_ebpf() {
-    println!("cargo:warning={}", "DOWNLOAD");
+    panic!();
 
     use reqwest::blocking::Client;
     use std::env;
