@@ -2,8 +2,6 @@ use std::path::PathBuf;
 
 #[cfg(feature = "build")]
 fn build_ebpf() {
-    println!("cargo:rerun-if-changed=./ockam_ebpf_impl");
-
     use std::env;
     use std::process::Command;
 
