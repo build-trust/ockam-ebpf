@@ -2,8 +2,6 @@ use std::path::PathBuf;
 
 #[cfg(feature = "build")]
 fn build_ebpf() {
-    println!("cargo:rerun-if-changed=./ockam_ebpf_impl/src/common.rs");
-
     println!("cargo:warning=WARNING");
 
     use std::env;
@@ -95,6 +93,8 @@ fn download_ebpf() {
 }
 
 fn main() {
+    println!("cargo:rerun-if-changed=./ockam_ebpf_impl");
+
     #[cfg(not(feature = "build"))]
     download_ebpf();
 
