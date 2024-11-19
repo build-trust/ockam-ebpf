@@ -14,7 +14,7 @@ rust-version = "1.70.0"
 description = """
 eBPF program used by Ockam Privileged Portals
 """
-include = ["../ockam_ebpf"]
+include = ["../ockam_ebpf_impl"]
 
 [features]
 default = []
