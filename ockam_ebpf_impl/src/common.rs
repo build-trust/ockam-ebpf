@@ -5,7 +5,7 @@ use network_types::eth::{EthHdr, EtherType};
 use network_types::ip::{IpProto, Ipv4Hdr};
 use network_types::tcp::TcpHdr;
 
-use aya_ebpf::bindings::TC_ACT_PIPE;
+use aya_ebpf::bindings::{TC_ACT_OK, TC_ACT_PIPE};
 use aya_ebpf::macros::map;
 use aya_ebpf::maps::HashMap;
 use aya_ebpf::programs::TcContext;
@@ -18,16 +18,10 @@ pub type Proto = u8;
 pub type Port = u16;
 
 // TODO: May want to switch to `HashMap::pinned` for efficiency (to share eBPFs)
-// TODO: Split Inlet port map into inlet ingress and inlet egress maps for performance
-//  (and the same for outlets)
 
 /// Ports that we run inlets on
 #[map]
-static INLET_PORT_MAP: HashMap<Port, Proto> = HashMap::with_max_entries(1024, 0);
-
-/// Ports that we assigned for currently running connections
-#[map]
-static OUTLET_PORT_MAP: HashMap<Port, Proto> = HashMap::with_max_entries(1024, 0);
+static PORT_MAP: HashMap<Port, Proto> = HashMap::with_max_entries(1024, 0);
 
 #[derive(PartialEq)]
 pub enum Direction {
@@ -120,12 +114,11 @@ fn handle_ingress_tcp_protocol(ctx: &TcContext, ipv4hdr: *mut Ipv4Hdr) -> Result
     let fin = tcphdr_stack.fin();
     let rst = tcphdr_stack.rst();
 
-    if let Some(proto) = unsafe { INLET_PORT_MAP.get(&dst_port) } {
-        // Inlet logic
+    if let Some(proto) = unsafe { PORT_MAP.get(&dst_port) } {
         let proto = *proto;
         trace!(
             ctx,
-            "INLET. CONVERTING TCP PACKET TO {}. SRC: {}.{}.{}.{}:{}, DST: {}.{}.{}.{}:{}. SYN {} ACK {} FIN {} RST {}.",
+            "CONVERTING TCP PACKET TO {}. SRC: {}.{}.{}.{}:{}, DST: {}.{}.{}.{}:{}. SYN {} ACK {} FIN {} RST {}.",
             proto,
             src_ip.octets()[0],
             src_ip.octets()[1],
@@ -145,36 +138,7 @@ fn handle_ingress_tcp_protocol(ctx: &TcContext, ipv4hdr: *mut Ipv4Hdr) -> Result
 
         convert_tcp_to_ockam(ctx, ipv4hdr, proto);
 
-        return Ok(TC_ACT_PIPE);
-    }
-
-    if let Some(proto) = unsafe { OUTLET_PORT_MAP.get(&dst_port) } {
-        // Outlet logic
-        let proto = *proto;
-
-        trace!(
-            ctx,
-            "OUTLET. CONVERTING TCP PACKET TO {}. SRC: {}.{}.{}.{}:{}, DST: {}.{}.{}.{}:{}. SYN {} ACK {} FIN {} RST {}.",
-            proto,
-            src_ip.octets()[0],
-            src_ip.octets()[1],
-            src_ip.octets()[2],
-            src_ip.octets()[3],
-            src_port,
-            dst_ip.octets()[0],
-            dst_ip.octets()[1],
-            dst_ip.octets()[2],
-            dst_ip.octets()[3],
-            dst_port,
-            syn,
-            ack,
-            fin,
-            rst
-        );
-
-        convert_tcp_to_ockam(ctx, ipv4hdr, proto);
-
-        return Ok(TC_ACT_PIPE);
+        return Ok(TC_ACT_OK);
     }
 
     trace!(
@@ -251,12 +215,11 @@ fn handle_egress_ockam_protocol(ctx: &TcContext, ipv4hdr: *mut Ipv4Hdr) -> Resul
     let fin = tcphdr_stack.fin();
     let rst = tcphdr_stack.rst();
 
-    if let Some(port_proto) = unsafe { INLET_PORT_MAP.get(&src_port) } {
-        // Inlet logic
+    if let Some(port_proto) = unsafe { PORT_MAP.get(&src_port) } {
         if proto == *port_proto {
             trace!(
                 ctx,
-                "INLET. CONVERTING OCKAM {} packet to TCP. SRC: {}.{}.{}.{}:{}, DST: {}.{}.{}.{}:{}. SYN {} ACK {} FIN {} RST {}.",
+                "CONVERTING OCKAM {} packet to TCP. SRC: {}.{}.{}.{}:{}, DST: {}.{}.{}.{}:{}. SYN {} ACK {} FIN {} RST {}.",
                 proto,
                 src_ip.octets()[0],
                 src_ip.octets()[1],
@@ -276,36 +239,7 @@ fn handle_egress_ockam_protocol(ctx: &TcContext, ipv4hdr: *mut Ipv4Hdr) -> Resul
 
             convert_ockam_to_tcp(ctx, ipv4hdr, tcphdr);
 
-            return Ok(TC_ACT_PIPE);
-        }
-    }
-
-    if let Some(port_proto) = unsafe { OUTLET_PORT_MAP.get(&src_port) } {
-        // Outlet logic
-        if proto == *port_proto {
-            trace!(
-                ctx,
-                "OUTLET. CONVERTING OCKAM {} packet to TCP. SRC: {}.{}.{}.{}:{}, DST: {}.{}.{}.{}:{}. SYN {} ACK {} FIN {} RST {}.",
-                proto,
-                src_ip.octets()[0],
-                src_ip.octets()[1],
-                src_ip.octets()[2],
-                src_ip.octets()[3],
-                src_port,
-                dst_ip.octets()[0],
-                dst_ip.octets()[1],
-                dst_ip.octets()[2],
-                dst_ip.octets()[3],
-                dst_port,
-                syn,
-                ack,
-                fin,
-                rst
-            );
-
-            convert_ockam_to_tcp(ctx, ipv4hdr, tcphdr);
-
-            return Ok(TC_ACT_PIPE);
+            return Ok(TC_ACT_OK);
         }
     }
 
