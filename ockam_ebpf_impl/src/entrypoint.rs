@@ -14,6 +14,7 @@
 #![no_std]
 #![no_main]
 
+use aya_ebpf::bindings::TC_ACT_PIPE;
 use aya_ebpf::macros::classifier;
 use aya_ebpf::programs::TcContext;
 
@@ -32,12 +33,14 @@ use crate::common::Direction;
 
 #[classifier]
 pub fn ockam_ingress(ctx: TcContext) -> i32 {
-    common::try_handle(&ctx, Direction::Ingress).unwrap_or_else(|ret| ret)
+    TC_ACT_PIPE
+    // common::try_handle(&ctx, Direction::Ingress).unwrap_or_else(|ret| ret)
 }
 
 #[classifier]
 pub fn ockam_egress(ctx: TcContext) -> i32 {
-    common::try_handle(&ctx, Direction::Egress).unwrap_or_else(|ret| ret)
+    TC_ACT_PIPE
+    // common::try_handle(&ctx, Direction::Egress).unwrap_or_else(|ret| ret)
 }
 
 // TODO: Check if eBPF code can panic at all
