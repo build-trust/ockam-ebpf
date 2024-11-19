@@ -45,7 +45,7 @@ static OUTLET_PORT_MAP: HashMap<Port, Proto> = HashMap::with_max_entries(1024, 0
 
 /// Ports that we run on
 #[map]
-static PORT_QUEUE: Array<PortQueueElement> = Array::with_max_entries(1024, 0);
+static PORT_QUEUE: HashMap<Port, Proto> = HashMap::with_max_entries(1024, 0);
 
 static mut PORTS_LEN: usize = 0;
 static mut PORTS: [PortQueueElement; 1024] = [PortQueueElement::new(); 1024];
@@ -110,12 +110,12 @@ unsafe fn update_cache_if_needed() {
 
 #[inline(always)]
 unsafe fn update_cache() {
-    while let Some(queue_element) = PORT_QUEUE.pop() {
-        if PORTS_LEN < 1024 {
-            PORTS[PORTS_LEN] = queue_element;
-            PORTS_LEN += 1;
-        }
-    }
+    // while let Some(queue_element) = PORT_QUEUE.pop() {
+    //     if PORTS_LEN < 1024 {
+    //         PORTS[PORTS_LEN] = queue_element;
+    //         PORTS_LEN += 1;
+    //     }
+    // }
 }
 
 #[inline(always)]
