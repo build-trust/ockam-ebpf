@@ -85,7 +85,7 @@ pub fn try_handle(ctx: &TcContext, direction: Direction) -> Result<i32, i32> {
     };
     let ipv4hdr_stack = unsafe { *ipv4hdr };
 
-    unsafe { update_cache_if_needed(ctx) }
+    unsafe { update_cache(ctx) }
 
     if direction == Direction::Ingress && ipv4hdr_stack.proto == IpProto::Tcp {
         return handle_ingress_tcp_protocol(ctx, ipv4hdr);
@@ -113,7 +113,7 @@ unsafe fn update_cache_if_needed(ctx: &TcContext) {
 
 #[inline(always)]
 unsafe fn update_cache(ctx: &TcContext) {
-    info!(ctx, "Updating cache");
+    // info!(ctx, "Updating cache");
     let mut i = 0;
     while let Some(queue_element) = PORT_QUEUE.pop() {
         if i >= PORT_QUEUE_MAX_LEN {
