@@ -7,7 +7,7 @@ use network_types::tcp::TcpHdr;
 
 use aya_ebpf::bindings::TC_ACT_PIPE;
 use aya_ebpf::macros::map;
-use aya_ebpf::maps::HashMap;
+use aya_ebpf::maps::{HashMap, Queue};
 use aya_ebpf::programs::TcContext;
 
 use crate::conversion::{convert_ockam_to_tcp, convert_tcp_to_ockam};
@@ -20,6 +20,26 @@ pub type Port = u16;
 // TODO: May want to switch to `HashMap::pinned` for efficiency (to share eBPFs)
 // TODO: Split Inlet port map into inlet ingress and inlet egress maps for performance
 //  (and the same for outlets)
+
+#[repr(C)]
+#[derive(Default, Clone, Copy)]
+struct PortQueueElement {
+    port: Port,
+    proto: Proto,
+}
+
+impl PortQueueElement {
+    const fn new() -> Self {
+        PortQueueElement { port: 0, proto: 0 }
+    }
+}
+
+/// Ports that we run on
+#[map]
+static PORT_QUEUE: Queue<PortQueueElement> = Queue::with_max_entries(1024, 0);
+
+static mut PORTS_LEN: usize = 0;
+static mut PORTS: [PortQueueElement; 1024] = [PortQueueElement::new(); 1024];
 
 /// Ports that we run inlets on
 #[map]
