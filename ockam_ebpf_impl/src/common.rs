@@ -8,7 +8,7 @@ use network_types::tcp::TcpHdr;
 use aya_ebpf::bindings::TC_ACT_PIPE;
 use aya_ebpf::helpers::bpf_ktime_get_boot_ns;
 use aya_ebpf::macros::map;
-use aya_ebpf::maps::{HashMap, Queue};
+use aya_ebpf::maps::{Array, HashMap, Queue};
 use aya_ebpf::programs::TcContext;
 
 use crate::conversion::{convert_ockam_to_tcp, convert_tcp_to_ockam};
@@ -35,13 +35,6 @@ impl PortQueueElement {
     }
 }
 
-/// Ports that we run on
-#[map]
-static PORT_QUEUE: Queue<PortQueueElement> = Queue::with_max_entries(1024, 0);
-
-static mut PORTS_LEN: usize = 0;
-static mut PORTS: [PortQueueElement; 1024] = [PortQueueElement::new(); 1024];
-
 /// Ports that we run inlets on
 #[map]
 static INLET_PORT_MAP: HashMap<Port, Proto> = HashMap::with_max_entries(1024, 0);
@@ -49,6 +42,13 @@ static INLET_PORT_MAP: HashMap<Port, Proto> = HashMap::with_max_entries(1024, 0)
 /// Ports that we assigned for currently running connections
 #[map]
 static OUTLET_PORT_MAP: HashMap<Port, Proto> = HashMap::with_max_entries(1024, 0);
+
+/// Ports that we run on
+#[map]
+static PORT_QUEUE: Array<PortQueueElement> = Array::with_max_entries(1024, 0);
+
+static mut PORTS_LEN: usize = 0;
+static mut PORTS: [PortQueueElement; 1024] = [PortQueueElement::new(); 1024];
 
 #[derive(PartialEq)]
 pub enum Direction {
