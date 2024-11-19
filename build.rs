@@ -12,6 +12,7 @@ fn build_ebpf() {
 
     let target_dir = out_dir.join("ebpf");
     _ = std::fs::remove_dir(&target_dir);
+    std::fs::create_dir(&target_dir).unwrap();
 
     let output = Command::new("cargo")
         .current_dir(PathBuf::from("./ockam_ebpf_impl"))
