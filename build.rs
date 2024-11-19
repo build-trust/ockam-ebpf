@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 #[cfg(feature = "build")]
 fn build_ebpf() {
-    println!("cargo:warning={}", "BUILD");
+    panic!();
 
     println!("cargo:rerun-if-changed=./ockam_ebpf_impl");
 
@@ -38,8 +38,6 @@ fn build_ebpf() {
 
 #[cfg(not(feature = "build"))]
 fn download_ebpf() {
-    panic!();
-
     use reqwest::blocking::Client;
     use std::env;
     use std::str::FromStr;
