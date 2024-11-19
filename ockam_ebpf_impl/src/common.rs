@@ -187,7 +187,7 @@ fn handle_ingress_tcp_protocol(ctx: &TcContext, ipv4hdr: *mut Ipv4Hdr) -> Result
             ack,
             fin,
             rst
-        );11
+        );
 
         convert_tcp_to_ockam(ctx, ipv4hdr, proto);
 
