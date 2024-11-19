@@ -2,6 +2,8 @@ use std::path::PathBuf;
 
 #[cfg(feature = "build")]
 fn build_ebpf() {
+    println!("cargo:rerun-if-changed=./ockam_ebpf_impl");
+
     use std::env;
     use std::process::Command;
 
@@ -9,6 +11,7 @@ fn build_ebpf() {
     let output_file = out_dir.join("ockam_ebpf");
 
     let target_dir = out_dir.join("ebpf");
+    _ = std::fs::remove_dir(&target_dir);
 
     let output = Command::new("cargo")
         .current_dir(PathBuf::from("./ockam_ebpf_impl"))
