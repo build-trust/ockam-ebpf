@@ -2,6 +2,8 @@ use std::path::PathBuf;
 
 #[cfg(feature = "build")]
 fn build_ebpf() {
+    println!("cargo:warning={}", "BUILD");
+
     println!("cargo:rerun-if-changed=./ockam_ebpf_impl");
 
     use std::env;
@@ -36,6 +38,8 @@ fn build_ebpf() {
 
 #[cfg(not(feature = "build"))]
 fn download_ebpf() {
+    println!("cargo:warning={}", "DOWNLOAD");
+
     use reqwest::blocking::Client;
     use std::env;
     use std::str::FromStr;
@@ -55,7 +59,7 @@ fn download_ebpf() {
     if output_versioned.exists() {
         std::fs::copy(&output_versioned, &output_file).unwrap();
         return;
-    }11
+    }
 
     let url = format!(
         "https://github.com/build-trust/ockam-ebpf/releases/download/{VERSION}/ockam_ebpf",
