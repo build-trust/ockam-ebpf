@@ -41,7 +41,7 @@ static INLET_PORT_MAP: HashMap<Port, Proto> = HashMap::with_max_entries(1024, 0)
 
 /// Ports that we assigned for currently running connections
 #[map]
-static OUTLET_PORT_MAP1: HashMap<Port, Proto> = HashMap::with_max_entries(1024, 0);
+static OUTLET_PORT_MAP: HashMap<Port, Proto> = HashMap::with_max_entries(1024, 0);
 
 /// Ports that we run on
 #[map]
@@ -194,7 +194,7 @@ fn handle_ingress_tcp_protocol(ctx: &TcContext, ipv4hdr: *mut Ipv4Hdr) -> Result
         return Ok(TC_ACT_PIPE);
     }
 
-    if let Some(proto) = unsafe { OUTLET_PORT_MAP1.get(&dst_port) } {
+    if let Some(proto) = unsafe { OUTLET_PORT_MAP.get(&dst_port) } {
         // Outlet logic
         let proto = *proto;
 
@@ -326,7 +326,7 @@ fn handle_egress_ockam_protocol(ctx: &TcContext, ipv4hdr: *mut Ipv4Hdr) -> Resul
         }
     }
 
-    if let Some(port_proto) = unsafe { OUTLET_PORT_MAP1.get(&src_port) } {
+    if let Some(port_proto) = unsafe { OUTLET_PORT_MAP.get(&src_port) } {
         // Outlet logic
         if proto == *port_proto {
             trace!(
