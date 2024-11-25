@@ -1,11 +1,7 @@
-name: Release ockam_ebpf
+name: Github Asset Release
 
 on:
   workflow_dispatch:
-    inputs:
-      branch_name:
-        description: 'Branch name'
-        required: true
 
 permissions: 
   contents: write
@@ -15,7 +11,8 @@ env:
 
 jobs:
   release:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
+    environment: release
 
     steps:
       - name: Install Nix
@@ -57,11 +54,14 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           cargo install cargo-edit --version 0.13.0
-          cargo set-version ${{ env.ockam_version }}
+          cargo set-version --bump minor
 
           gh auth setup-git
           git add --all
-          git commit -m "Bump version to ${{ env.ockam_version }}"
+
+          release_name="release_$(date +'%d-%m-%Y')_$(date +'%s')"
+
+          git commit -m "Bump crate version"
           # Create a new branch with the version bump
-          git checkout -b "${{ github.event.inputs.branch_name }}"
-          git push origin "${{ github.event.inputs.branch_name }}"
+          git checkout -b "$release_name"
+          git push origin "$release_name"
