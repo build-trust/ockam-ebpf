@@ -26,6 +26,7 @@ fn build_ebpf() {
     let output = Command::new("cargo")
         .current_dir(PathBuf::from("./ockam_ebpf_impl"))
         .env_remove("RUSTUP_TOOLCHAIN")
+        .env_remove("RUSTC")
         .args(&args)
         .env("CARGO_TARGET_DIR", &target_dir)
         .output();
