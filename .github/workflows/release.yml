@@ -1,0 +1,67 @@
+name: Release ockam_ebpf
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch_name:
+        description: 'Branch name'
+        required: true
+
+permissions: 
+  contents: write
+
+env:
+  BINARY_ROOT_PATH: ockam_ebpf_impl
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@3ebd1aebb47f95493b62de6eec0cac3cd74e50a9
+
+      - name: Checkout Repository
+        uses: actions/checkout@cbb722410c2e876e24abbe8de2cc27693e501dcb
+
+      - name: Build ockam_ebpf crate
+        shell: nix shell nixpkgs#llvm nixpkgs#rustup nixpkgs#cargo --command bash {0}
+        working-directory: ${{ env.BINARY_ROOT_PATH }}
+        run: |
+          rustup install stable
+          rustup toolchain install nightly --component rust-src
+          cargo install bpf-linker
+          cargo build --release
+
+      - name: Get Latest Version Of Ockam Draft
+        shell: nix shell nixpkgs#gh --command bash {0}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ockam_version=$(gh release list -R ${{ github.repository_owner }}/ockam --json tagName | jq -r '.[0].tagName')
+          ockam_version="${ockam_version#ockam_}"
+          echo "Latest version of Ockam is $ockam_version"
+          echo "ockam_version=$ockam_version" >> $GITHUB_ENV
+
+      - name: Create Release
+        working-directory: ${{ env.BINARY_ROOT_PATH }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Creating release ${{ env.ockam_version }}"
+          gh release create ${{ env.ockam_version }} ./target/bpfel-unknown-none/release/ockam_ebpf -t ${{ env.ockam_version }} -n "Release ${{ env.ockam_version }}"
+
+      - name: Update Version in Cargo.toml
+        shell: nix shell nixpkgs#rustup nixpkgs#cargo nixpkgs#gh --command bash {0}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cargo install cargo-edit --version 0.13.0
+          cargo set-version ${{ env.ockam_version }}
+
+          gh auth setup-git
+          git add --all
+          git commit -m "Bump version to ${{ env.ockam_version }}"
+          # Create a new branch with the version bump
+          git checkout -b "${{ github.event.inputs.branch_name }}"
+          git push origin "${{ github.event.inputs.branch_name }}"
