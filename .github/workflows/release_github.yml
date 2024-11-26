@@ -22,11 +22,11 @@ jobs:
         uses: actions/checkout@cbb722410c2e876e24abbe8de2cc27693e501dcb
 
       - name: Update Version in Cargo.toml
-        shell: nix shell nixpkgs#rustup nixpkgs#cargo nixpkgs#gh --command bash {0}
+        shell: nix shell nixpkgs#rustup nixpkgs#cargo nixpkgs#cargo-edit nixpkgs#gh --command bash {0}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          cargo install cargo-edit --version 0.13.0
+          git checkout -b "$release_name"
           cargo set-version --bump minor
 
           gh auth setup-git
@@ -36,7 +36,6 @@ jobs:
 
           git commit -m "Bump crate version"
           # Create a new branch with the version bump
-          git checkout -b "$release_name"
           git push origin "$release_name"
 
       - name: Get Latest Version Of Ockam Draft
