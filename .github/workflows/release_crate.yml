@@ -1,0 +1,21 @@
+name: Crates.io Publish
+
+on:
+  workflow_dispatch:
+
+jobs:
+  release:
+    runs-on: ubuntu-20.04
+    environment: release
+
+    steps:
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@3ebd1aebb47f95493b62de6eec0cac3cd74e50a9
+
+      - name: Checkout Repository
+        uses: actions/checkout@cbb722410c2e876e24abbe8de2cc27693e501dcb
+
+      - name: Crates Publish
+        shell: nix shell nixpkgs#rustup nixpkgs#cargo --command bash {0}
+        run: |
+          cargo publish --token ${{ secrets.CRATES_IO_TOKEN }}
