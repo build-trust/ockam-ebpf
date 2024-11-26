@@ -46,7 +46,7 @@ jobs:
         run: |
           ockam_version=$(toml2json Cargo.toml | jq -r '.package.version')
           echo "Latest version of Ockam is $ockam_version"
-          echo "ockam_version=$ockam_version" >> $GITHUB_ENV
+          echo "ockam_version=v$ockam_version" >> $GITHUB_ENV
 
       - name: Build ockam_ebpf crate
         shell: nix shell nixpkgs#llvm nixpkgs#rustup nixpkgs#cargo --command bash {0}
