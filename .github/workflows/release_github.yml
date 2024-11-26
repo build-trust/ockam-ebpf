@@ -26,13 +26,16 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          release_name="release_$(date +'%d-%m-%Y')_$(date +'%s')"
           git checkout -b "$release_name"
+
           cargo set-version --bump minor
 
           gh auth setup-git
           git add --all
 
-          release_name="release_$(date +'%d-%m-%Y')_$(date +'%s')"
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
 
           git commit -m "Bump crate version"
           # Create a new branch with the version bump
