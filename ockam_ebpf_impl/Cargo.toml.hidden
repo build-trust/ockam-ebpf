@@ -1,3 +1,4 @@
+[workspace]
 [package]
 name = "ockam_ebpf_impl"
 version = "0.1.0"
@@ -7,9 +8,9 @@ edition = "2021"
 homepage = "https://github.com/build-trust/ockam"
 keywords = ["ockam", "crypto", "p2p", "cryptography", "encryption"]
 license = "Apache-2.0"
-publish = true
+publish = false
 readme = "README.md"
-repository = "https://github.com/build-trust/ockam/implementations/rust/ockam/ockam_ebpf"
+repository = "https://github.com/build-trust/ockam-ebpf/ockam_ebpf_impl"
 rust-version = "1.70.0"
 description = """
 eBPF program used by Ockam Privileged Portals

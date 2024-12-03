@@ -7,15 +7,35 @@ fn build_ebpf() {
     use std::env;
     use std::process::Command;
 
+    use fs_extra::dir::CopyOptions;
+
     let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
     let output_file = out_dir.join("ockam_ebpf");
+    let ebpf_subdir = out_dir.join("ebpf");
 
-    let target_dir = out_dir.join("ebpf");
+    let ockam_ebpf_impl_subdir = ebpf_subdir.join("ockam_ebpf_impl");
+    let ockam_ebpf_impl_target_subdir = ebpf_subdir.join("target");
+    let cargo_toml_hidden = ockam_ebpf_impl_subdir.join("Cargo.toml.hidden");
+    let cargo_toml = ockam_ebpf_impl_subdir.join("Cargo.toml");
 
-    // Delete the target dir for eBPF crate otherwise it doesn't want to recompile after files are
+    // Delete the directories for eBPF crate otherwise it doesn't want to recompile after files are
     // updated
-    _ = std::fs::remove_dir_all(&target_dir);
-    std::fs::create_dir(&target_dir).unwrap();
+    _ = std::fs::remove_dir_all(&ebpf_subdir);
+
+    std::fs::create_dir(&ebpf_subdir).unwrap();
+    std::fs::create_dir(&ockam_ebpf_impl_subdir).unwrap();
+    std::fs::create_dir(&ockam_ebpf_impl_target_subdir).unwrap();
+
+    // Copy the impl crate contents to build it
+    fs_extra::copy_items(
+        &[PathBuf::from("./ockam_ebpf_impl")],
+        &ebpf_subdir,
+        &CopyOptions::new(),
+    )
+    .unwrap();
+
+    // Copy Cargo.toml.hidden to Cargo.toml
+    std::fs::copy(&cargo_toml_hidden, &cargo_toml).unwrap();
 
     #[allow(unused_mut)]
     let mut args = vec!["build", "--release"];
@@ -24,11 +44,11 @@ fn build_ebpf() {
     args.extend_from_slice(&["-F", "logging"]);
 
     let output = Command::new("cargo")
-        .current_dir(PathBuf::from("./ockam_ebpf_impl"))
+        .current_dir(&ockam_ebpf_impl_subdir)
         .env_remove("RUSTUP_TOOLCHAIN")
         .env_remove("RUSTC")
         .args(&args)
-        .env("CARGO_TARGET_DIR", &target_dir)
+        .env("CARGO_TARGET_DIR", &ockam_ebpf_impl_target_subdir)
         .output();
 
     let output = match output {
@@ -42,7 +62,8 @@ fn build_ebpf() {
         panic!("Couldn't compile eBPF");
     }
 
-    let build_output_file = target_dir.join("bpfel-unknown-none/release/ockam_ebpf");
+    let build_output_file =
+        ockam_ebpf_impl_target_subdir.join("bpfel-unknown-none/release/ockam_ebpf");
     std::fs::copy(build_output_file, output_file).expect("Couldn't copy ockam_ebpf file");
 }
 
