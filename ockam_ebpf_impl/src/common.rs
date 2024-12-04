@@ -17,11 +17,15 @@ pub type Proto = u8;
 
 pub type Port = u16;
 
-// TODO: May want to switch to `HashMap::pinned` for efficiency (to share eBPFs)
-
 /// Ports that we run inlets on
 #[map]
-static PORT_MAP: HashMap<Port, Proto> = HashMap::with_max_entries(1024, 0);
+static PORT_MAP: HashMap<Port, Proto> = HashMap::pinned(1024, 0);
+
+// TODO: Check
+// BPF_F_NO_PREALLOC
+// BPF_NOEXIST
+// BPF_F_LOCK
+// BPF_F_RDONLY
 
 #[derive(PartialEq)]
 pub enum Direction {
