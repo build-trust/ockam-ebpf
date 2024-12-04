@@ -19,7 +19,7 @@ pub type Port = u16;
 
 /// Ports that we run inlets on
 #[map]
-static PORT_MAP: HashMap<Port, Proto> = HashMap::pinned(1024, 0);
+static OCKAM_PORT_MAP: HashMap<Port, Proto> = HashMap::pinned(1024, 0);
 
 // TODO: Check
 // BPF_F_NO_PREALLOC
@@ -118,7 +118,7 @@ fn handle_ingress_tcp_protocol(ctx: &TcContext, ipv4hdr: *mut Ipv4Hdr) -> Result
     let fin = tcphdr_stack.fin();
     let rst = tcphdr_stack.rst();
 
-    if let Some(proto) = unsafe { PORT_MAP.get(&dst_port) } {
+    if let Some(proto) = unsafe { OCKAM_PORT_MAP.get(&dst_port) } {
         let proto = *proto;
         trace!(
             ctx,
@@ -219,7 +219,7 @@ fn handle_egress_ockam_protocol(ctx: &TcContext, ipv4hdr: *mut Ipv4Hdr) -> Resul
     let fin = tcphdr_stack.fin();
     let rst = tcphdr_stack.rst();
 
-    if let Some(port_proto) = unsafe { PORT_MAP.get(&src_port) } {
+    if let Some(port_proto) = unsafe { OCKAM_PORT_MAP.get(&src_port) } {
         if proto == *port_proto {
             trace!(
                 ctx,
