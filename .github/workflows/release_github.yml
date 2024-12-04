@@ -52,6 +52,7 @@ jobs:
         shell: nix shell nixpkgs#llvm nixpkgs#rustup nixpkgs#cargo --command bash {0}
         working-directory: ${{ env.BINARY_ROOT_PATH }}
         run: |
+          cp Cargo.toml.hidden Cargo.toml
           rustup install stable
           rustup toolchain install nightly --component rust-src
           cargo install bpf-linker
